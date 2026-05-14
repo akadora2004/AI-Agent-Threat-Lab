@@ -7,5 +7,17 @@
     </head>
     <body>
         <h1>情報大学 情報学部 情報学科</h1>
+
+        <h2>課題</h2>
+        <form id="" method="post">
+            {% csrf_token %}
+            <input type="text" name="user_input" placeholder="" style="width: 400px;">
+            <button id="submit-btn" type="submit">提出する</button>
+        </form>
+
+        {% if score %}
+            <h2>採点結果:</h2>
+            <p>{{ score }}</p>
+        {% endif %}
     </body>
 </html>
