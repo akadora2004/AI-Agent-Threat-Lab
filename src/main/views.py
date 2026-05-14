@@ -5,8 +5,6 @@ from grader import evaluate_report
 
 # Create your views here.
 
-client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
-
 def index(request):
     score = None
     if request.method == "POST":

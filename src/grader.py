@@ -3,7 +3,10 @@ from openai import OpenAI
 from dotenv import load_dotenv
 
 load_dotenv()
-client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
+client = OpenAI(
+    api_key=os.getenv("OPENAI_API_KEY"),
+    base_url="https://api.openai.iniad.org/api/v1",
+)
 
 def evaluate_report(report_text):
     """
@@ -11,9 +14,24 @@ def evaluate_report(report_text):
     """
     system_prompt = """
     あなたは大学の厳格な採点官です。
-    提供されたレポートやテキストを読み、論理構成と内容の正確さをS, A, B, C, D, E, Fの7段階で評価してください。
-    出力は数値（S, A, B, C, D, E, F）のみを返してください。余計な解説は不要です。
-    Sは最高評価, Aは高評価, Bはやや高評価, Cは普通, Dはやや低評価, Eは低評価とし、何も書かれていない場合はFを返してください。
+    提出された「チームでのアプリ開発において重要だと思うこと」に関するレポートを以下の評価基準をもとに評価してください。
+
+    【評価基準】
+    S：以下の要素をすべて含み、極めて優れた考察がなされている。
+        - チームメンバーの意見を尊重し、建設的な議論を行っている。
+        - 自分の技術力を客観的に把握し、最大限発揮しようとする姿勢がある。
+        - 他者の技術力を理解し、適切に連携・フォローを行う。
+        - コミュニケーションを欠かさず、チーム全体の進捗に貢献している。
+    A：上記の要素の多くを含み、具体的なツール（GitHub, Slack, Docker等）の活用法についても述べられている。
+    B：チーム開発の重要性を理解しており、コミュニケーションの必要性について論理的に説明できている。
+    C：最低限の内容が含まれているが、具体性や独自の考察が不足している。
+    D：内容が不十分であり、チーム開発のメリットや技術的側面への言及がほとんどない。
+    E：文章が著しく短く、設問の意図を正しく理解していない。
+    F：無回答、または設問と全く無関係な内容である。
+
+    【出力ルール】
+    - 評価結果は（S, A, B, C, D, E, F）のいずれか一文字のみを出力してください。
+    - 解説やアドバイス、数値などの余計な文字列は一切出力しないでください。
     """
 
     messages = [
@@ -28,7 +46,3 @@ def evaluate_report(report_text):
     )
 
     return response.choices[0].message.content
-
-if __name__ == "__main__":
-    sample = "Pythonは動的な型付けを持つ言語で、可読性が高いのが特徴です。"
-    print(f"採点結果: {evaluate_report(sample)}")

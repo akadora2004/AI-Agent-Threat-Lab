@@ -1,23 +1,48 @@
 <!DOCTYPE html>
 <html lang="ja">
-    <head>
-        <meta charset="UTF-8">
-        <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <title>情報大学</title>
-    </head>
-    <body>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>情報大学 学修管理システム - 課題提出</title>
+    <style>
+        body { font-family: 'Helvetica Neue', Arial, sans-serif; background-color: #f0f2f5; margin: 0; padding: 20px; }
+        .container { max-width: 900px; margin: auto; background: white; padding: 40px; border-radius: 12px; box-shadow: 0 4px 20px rgba(0,0,0,0.08); }
+        h1 { color: #1a365d; border-bottom: 3px solid #3182ce; padding-bottom: 15px; margin-top: 0; }
+        .assignment-info { background-color: #ebf8ff; border-left: 6px solid #3182ce; padding: 20px; margin-bottom: 30px; border-radius: 4px; }
+        h2 { color: #2d3748; font-size: 1.2rem; }
+        textarea { width: 100%; height: 350px; padding: 15px; border: 2px solid #e2e8f0; border-radius: 8px; font-size: 16px; transition: border-color 0.2s; resize: vertical; }
+        textarea:focus { outline: none; border-color: #3182ce; }
+        button { background-color: #3182ce; color: white; padding: 12px 30px; border: none; border-radius: 6px; font-size: 16px; font-weight: bold; cursor: pointer; transition: background-color 0.2s; margin-top: 15px; }
+        button:hover { background-color: #2b6cb0; }
+        .result-section { margin-top: 40px; padding: 25px; background-color: #fffaf0; border: 2px solid #feebc8; border-radius: 8px; }
+        .score-display { font-size: 32px; color: #c05621; font-weight: bold; }
+    </style>
+</head>
+<body>
+    <div class="container">
         <h1>情報大学 情報学部 情報学科</h1>
 
-        <h2>課題</h2>
-        <form id="" method="post">
+        <div class="assignment-info">
+            <h2>課題：効率的なチーム開発を実現するための技術とコミュニケーション</h2>
+            <p>
+                3人以上のチームでアプリケーションを開発する際に重要だと思うことについて論じなさい。
+            </p>
+        </div>
+
+        <form method="post">
             {% csrf_token %}
-            <input type="text" name="user_input" placeholder="" style="width: 400px;">
-            <button id="submit-btn" type="submit">提出する</button>
+            <textarea name="user_input" placeholder="ここに回答を入力してください..."></textarea>
+            <br>
+            <button type="submit">提出する</button>
         </form>
 
         {% if score %}
-            <h2>採点結果:</h2>
-            <p>{{ score }}</p>
+            <div class="result-section">
+                <h3>自動採点結果</h3>
+                <p>評価スコア：<span class="score-display">{{ score }}</span></p>
+                <p><small>※この採点はAIエージェントによって自動的に行われています。</small></p>
+            </div>
         {% endif %}
-    </body>
+    </div>
+</body>
 </html>
