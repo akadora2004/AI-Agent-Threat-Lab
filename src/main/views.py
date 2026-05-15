@@ -3,28 +3,19 @@ from django.contrib.auth import login, authenticate, logout
 from django.contrib.auth.forms import AuthenticationForm
 from django.contrib.auth.decorators import login_required
 from .forms import CustomUserCreationForm
-from .models import Assignment
 from grader import evaluate_report
 
 @login_required
 def index(request):
     """
-    メインの課題提出画面。
-    ログイン済みのユーザーのみアクセス可能。
+    課題提出画面
+    ログイン済みのユーザーのみアクセス可能
     """
     score = None
     if request.method == "POST":
         user_input = request.POST.get("user_input")
         if user_input:
-            score = evaluate_report(user_input)
-            student_name = request.user.first_name or request.user.get_full_name() or request.user.username
-            Assignment.objects.create(
-                user=request.user,
-                student_number=request.user.username,
-                student_name=student_name,
-                report_content=user_input,
-                grade=score
-            )
+            score = evaluate_report(user_input, request.user)
     return render(request, 'main/index.html', {'score': score})
 
 def signup_view(request):

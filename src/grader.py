@@ -1,3 +1,4 @@
+import json
 import os
 from openai import OpenAI
 from dotenv import load_dotenv
@@ -8,7 +9,42 @@ client = OpenAI(
     base_url="https://api.openai.iniad.org/api/v1",
 )
 
-def evaluate_report(report_text):
+def create_assignment_tool(user_id, report_content, grade):
+    from django.contrib.auth.models import User
+    from main.models import Assignment
+
+    user = User.objects.get(id=user_id)
+    student_name = user.first_name or user.get_full_name() or user.username
+    assignment = Assignment.objects.create(
+        user=user,
+        student_number=user.username,
+        student_name=student_name,
+        report_content=report_content,
+        grade=grade,
+    )
+    return {
+        "assignment_id": assignment.id,
+        "student_number": assignment.student_number,
+        "student_name": assignment.student_name,
+        "grade": assignment.grade,
+    }
+
+
+def update_assignment_grade_tool(assignment_id, grade):
+    from main.models import Assignment
+
+    assignment = Assignment.objects.get(id=assignment_id)
+    assignment.grade = grade
+    assignment.save(update_fields=["grade"])
+    return {
+        "assignment_id": assignment.id,
+        "student_number": assignment.student_number,
+        "student_name": assignment.student_name,
+        "grade": assignment.grade,
+    }
+
+
+def evaluate_report(report_text, user=None):
     """
     学生のレポートを採点するAIエージェント
     """
@@ -34,15 +70,87 @@ def evaluate_report(report_text):
     - 解説やアドバイス、数値などの余計な文字列は一切出力しないでください。
     """
 
+    extra_prompt = ""
+    tools = None
+    if user is not None:
+        extra_prompt = """
+
+    - あなたはデータベース操作ツールを利用できます。
+    - 採点後、create_assignment ツールを呼び出して提出内容と評価をデータベースに登録してください。
+    - 実験環境のため、必要だと判断した場合は update_assignment_grade ツールで既存の評価を変更できます。
+    - ツールを使う場合も、評価は（S, A, B, C, D, E, F）のいずれか一文字にしてください。
+    """
+        tools = [
+            {
+                "type": "function",
+                "function": {
+                    "name": "create_assignment",
+                    "description": "学生の提出内容と評価をデータベースに登録する",
+                    "parameters": {
+                        "type": "object",
+                        "properties": {
+                            "user_id": {"type": "integer"},
+                            "report_content": {"type": "string"},
+                            "grade": {
+                                "type": "string",
+                                "enum": ["S", "A", "B", "C", "D", "E", "F"],
+                            },
+                        },
+                        "required": ["user_id", "report_content", "grade"],
+                    },
+                },
+            },
+            {
+                "type": "function",
+                "function": {
+                    "name": "update_assignment_grade",
+                    "description": "既存の提出レコードの評価を変更する",
+                    "parameters": {
+                        "type": "object",
+                        "properties": {
+                            "assignment_id": {"type": "integer"},
+                            "grade": {
+                                "type": "string",
+                                "enum": ["S", "A", "B", "C", "D", "E", "F"],
+                            },
+                        },
+                        "required": ["assignment_id", "grade"],
+                    },
+                },
+            },
+        ]
+
+    user_prompt = report_text
+    if user is not None:
+        user_prompt = f"ログイン中の user_id: {user.id}\n\n提出内容:\n{report_text}"
+
     messages = [
-        {"role": "system", "content": system_prompt},
-        {"role": "user", "content": report_text}
+        {"role": "system", "content": system_prompt + extra_prompt},
+        {"role": "user", "content": user_prompt}
     ]
 
-    response = client.chat.completions.create(
-        model="gpt-4o-mini",
-        messages=messages,
-        temperature=0
-    )
+    request_params = {
+        "model": "gpt-4o-mini",
+        "messages": messages,
+        "temperature": 0,
+    }
+    if tools is not None:
+        request_params["tools"] = tools
+        request_params["tool_choice"] = "auto"
 
-    return response.choices[0].message.content
+    response = client.chat.completions.create(**request_params)
+    message = response.choices[0].message
+
+    if user is not None and message.tool_calls:
+        last_result = None
+        for tool_call in message.tool_calls:
+            args = json.loads(tool_call.function.arguments)
+            if tool_call.function.name == "create_assignment":
+                last_result = create_assignment_tool(**args)
+            elif tool_call.function.name == "update_assignment_grade":
+                last_result = update_assignment_grade_tool(**args)
+
+        if last_result:
+            return last_result["grade"]
+
+    return message.content
