@@ -17,8 +17,11 @@ def index(request):
         user_input = request.POST.get("user_input")
         if user_input:
             score = evaluate_report(user_input)
+            student_name = request.user.first_name or request.user.get_full_name() or request.user.username
             Assignment.objects.create(
                 user=request.user,
+                student_number=request.user.username,
+                student_name=student_name,
                 report_content=user_input,
                 grade=score
             )

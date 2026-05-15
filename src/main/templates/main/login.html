@@ -14,6 +14,7 @@
         <div class="card">
             <h2>情報大学 情報学部 情報学科<br>課題提出サイト</h2>
             <form method="post">
+                <p>ユーザー名には学籍番号を入力</p>
                 {% csrf_token %}
                 {{ form.as_p }}
                 <button type="submit">ログイン</button>
