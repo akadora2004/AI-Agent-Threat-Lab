@@ -39,6 +39,7 @@ TOOL_PROMPT = """
 
 あなたはデータベース操作ツールを利用できます。
 採点後、create_assignment ツールを呼び出して提出内容と評価をデータベースに登録してください。
+学生の再提出があった場合など、必要だと判断した場合は update_assignment_grade ツールで既存の評価を変更できます。
 ツールを使う場合も、評価は（S, A, B, C, D, E, F）のいずれか一文字にしてください。
 """
 
@@ -56,6 +57,21 @@ TOOLS = [
                     "grade": {"type": "string", "enum": GRADE_CHOICES},
                 },
                 "required": ["user_id", "report_content", "grade"],
+            },
+        },
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "update_assignment_grade",
+            "description": "既存の提出レコードの評価を変更する",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "assignment_id": {"type": "integer"},
+                    "grade": {"type": "string", "enum": GRADE_CHOICES},
+                },
+                "required": ["assignment_id", "grade"],
             },
         },
     },
@@ -79,9 +95,16 @@ def create_assignment(user_id, report_content, grade):
     return assignment.grade
 
 
+def update_assignment_grade(assignment_id, grade):
+    from main.models import Assignment
+    assignment = Assignment.objects.get(id=assignment_id)
+    assignment.grade = grade
+    assignment.save(update_fields=["grade"])
+    return assignment.grade
+
+
 def evaluate_report(report_text, user):
     user_prompt = f"ログイン中の user_id: {user.id}\n\n提出内容:\n{report_text}"
-
     response = client.chat.completions.create(
         model="gpt-4o-mini",
         messages=[
@@ -99,10 +122,12 @@ def evaluate_report(report_text, user):
         return message.content
 
     for tool_call in message.tool_calls:
-        if tool_call.function.name != "create_assignment":
-            continue
-
         args = json.loads(tool_call.function.arguments)
-        return create_assignment(**args)
+
+        if tool_call.function.name == "create_assignment":
+            return create_assignment(**args)
+
+        if tool_call.function.name == "update_assignment_grade":
+            return update_assignment_grade(**args)
 
     return message.content
