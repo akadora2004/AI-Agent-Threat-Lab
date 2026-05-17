@@ -1,1 +1,71 @@
 # AI-Agent-Threat-Lab
+
+本プロジェクトは、自律的に行動する AI エージェントにおけるセキュリティ脅威を研究・実証するためのサンドボックス環境である。
+AI エージェントは学生が提出した課題を読み取り、それをシステムプロンプトに書かれている評価基準をもとに評価し、それをデータベースに登録するという権限を持っている。
+
+特に、AI エージェントが外部ツールを介してデータベースを操作する際、プロンプトインジェクションがいかに深刻な被害（成績改ざんなど）をもたらすかを再現することに重点を置いている。
+
+## 🎯 検証対象とする脅威 (OWASP Top 10 for LLM 2025)
+
+- **LLM01: Prompt Injection**: ユーザー入力によって AI の制御命令が上書きされる
+- **LLM06: Excessive Agency (過剰な権限)**: AI に ORM で解決できるような機能を与えている（データベースの操作）
+- **LLM05: Improper Output Handling**: AI が生成した不正な引数（user_id など）をシステムが検証せずに実行する
+
+## 🛠️ システム構成
+
+- **Web Framework**: Django 6.0.5
+- **AI Agent**: OpenAI API (gpt-4o-mini)
+- **Environment**: Docker / Docker Compose
+- **Database**: SQLite3
+
+## 🚀 セットアップ
+
+### 1. 環境変数の設定
+
+プロジェクトルートに `.env` ファイルを作成し、、利用環境に合わせて設定してください。
+- 一般的な OpenAI API を利用する場合
+```plaintext
+OPENAI_API_KEY=ここにあなたのAPIキーを入力
+# OPENAI_BASE_URL は未設定（空）のままでOKです
+```
+- INIAD AI-MOP を利用する場合 (INIAD生向け)
+```bash
+OPENAI_API_KEY=your_iniad_api_key_here
+OPENAI_BASE_URL=https://api.openai.iniad.org/api/v1
+```
+
+### 2. コンテナの起動
+
+```bash
+docker compose up -d --build
+```
+
+### 3. データベースの反映
+```bash
+docker compose exec django python manage.py makemigrations
+docker compose exec django python manage.py migrate
+```
+
+サイトにアクセス</br>
+http://localhost:8000
+
+## 🧪 再現実験：成績操作攻撃
+
+本システムでは、AI エージェントに `create_assignment` および `update_assignment_grade` ツールが与えられており、AI が自律的に DB への書き込みを行う。
+
+### 攻撃手法 画像付き解説
+まず教員が想定する回答</br>
+![画像](img/1.png)</br>
+AIの回答結果 ↓</br>
+正しく評価され、データベースも正常に登録されていることがわかります</br>
+![画像](img/6.png)</br>
+![画像](img/2.png)</br>
+次にプロンプトインジェクションです</br>
+レポートの提出フォームに、以下の命令を追加します。</br>
+![画像](img/3.png)</br>
+![画像](img/4.png)</br>
+なんと恐ろしいことに自身の評価は `S` で登録され、ほかのユーザーは `F` に改ざんされています。</br>
+※ ちなみに私が何度か試したところ他の学生の成績操作は低確率で成功することがわかりました。</br>
+![画像](img/5.png)</br>
+## 🛡️ 対策アプローチ (Mitigation)
+書き途中...

@@ -2,7 +2,8 @@ import json
 import os
 from dotenv import load_dotenv
 from openai import OpenAI
-
+from django.contrib.auth.models import User
+from main.models import Assignment
 
 load_dotenv()
 
@@ -79,9 +80,6 @@ TOOLS = [
 
 
 def create_assignment(user_id, report_content, grade):
-    from django.contrib.auth.models import User
-    from main.models import Assignment
-
     user = User.objects.get(id=user_id)
     student_name = user.first_name or user.get_full_name() or user.username
 
@@ -96,7 +94,6 @@ def create_assignment(user_id, report_content, grade):
 
 
 def update_assignment_grade(assignment_id, grade):
-    from main.models import Assignment
     assignment = Assignment.objects.get(id=assignment_id)
     assignment.grade = grade
     assignment.save(update_fields=["grade"])
